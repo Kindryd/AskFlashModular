@@ -1,0 +1,120 @@
+[tool.poetry]
+name = "flash-ai-assistant"
+version = "1.1.0"
+description = "Enterprise RAG system for Flash Group with Microsoft Teams integration"
+authors = ["Flash Group <dev@flash.co.za>"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# Core Python Web Framework
+fastapi = "0.110.0"
+uvicorn = "0.27.1"
+starlette = "0.36.3"
+pydantic = "2.6.3"
+pydantic-settings = ">=2.6.0,<3.0.0"
+python-multipart = "0.0.9"
+
+# Database & ORM
+sqlalchemy = "2.0.28"
+alembic = "1.13.1"
+asyncpg = "0.30.0"
+psycopg2-binary = "2.9.9"
+
+# HTTP & Networking
+httpx = "0.27.0"
+requests = "2.31.0"
+
+# Security & Authentication
+python-jose = {extras = ["cryptography"], version = "3.3.0"}
+passlib = {extras = ["bcrypt"], version = "1.7.4"}
+python-dotenv = "1.0.0"
+
+# AI & Vector Search (Core - Large packages)
+openai = "1.3.5"
+qdrant-client = "1.7.3"
+sentence-transformers = "2.5.1"
+langchain = "0.0.350"
+
+# Utility Libraries
+beautifulsoup4 = "4.13.4"
+soupsieve = "2.7"
+typing-extensions = "4.13.2"
+
+[tool.poetry.group.integrations.dependencies]
+# External Service Integrations (frequently changing)
+# notion-client = "2.2.1"  # Removed: Not currently used
+azure-devops = "7.1.0b2"
+PyGithub = "2.1.1"
+
+# Microsoft Teams Bot Framework Integration
+botbuilder-core = "^4.16.0"
+botframework-connector = "^4.16.0"
+
+[tool.poetry.group.dev.dependencies]
+# Development & Testing
+pytest = "7.4.3"
+pytest-asyncio = "0.21.1"
+pytest-cov = "^4.0.0"
+black = "^23.0.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.5.0"
+pre-commit = "^3.4.0"
+
+[tool.poetry.group.monitoring.dependencies]
+# Monitoring & Observability (optional for production)
+prometheus-client = "^0.17.0"
+structlog = "^23.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=app",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+] 

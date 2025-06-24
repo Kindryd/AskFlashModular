@@ -1,0 +1,41 @@
+# AskFlash Environment Configuration Template
+# Copy this file to backend/.env and update the values
+
+# Database Configuration
+POSTGRES_SERVER=localhost
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=askflash
+
+# Qdrant Vector Database Configuration
+QDRANT_HOST=localhost
+QDRANT_PORT=6333
+QDRANT_COLLECTION_NAME=wiki_embeddings
+QDRANT_VECTOR_SIZE=384
+
+# Embedding Configuration
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+EMBEDDING_CHUNK_SIZE=512
+EMBEDDING_CHUNK_OVERLAP=50
+
+# Security Configuration
+SECRET_KEY=your-secret-key-change-in-production
+ACCESS_TOKEN_EXPIRE_MINUTES=11520
+
+# OpenAI Configuration (REQUIRED for AI chat functionality)
+OPENAI_API_KEY=sk-proj-your-openai-api-key-here
+
+# Notion Configuration (Optional)
+NOTION_API_KEY=
+NOTION_DATABASE_ID=
+
+# Azure DevOps Configuration (Optional)
+AZURE_DEVOPS_PAT=
+AZURE_DEVOPS_ORG=
+
+# GitHub Configuration (Optional)
+GITHUB_TOKEN=
+GITHUB_ORG=
+
+# CORS Configuration
+CORS_ORIGINS=http://localhost:3000 

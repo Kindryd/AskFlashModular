@@ -1,0 +1,12 @@
+# Flash AI Assistant - Feature Requirements (Teams Bot Framework)
+# Only Teams Bot specific dependencies
+
+# Microsoft Teams Bot Framework Integration
+botbuilder-core==4.16.1
+botframework-connector==4.16.1
+botbuilder-schema==4.16.1
+
+# Future integrations will go here:
+# slack-sdk==3.x.x
+# discord.py==2.x.x
+# microsoft-graph-api==1.x.x 
