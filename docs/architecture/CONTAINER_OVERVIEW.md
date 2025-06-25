@@ -24,6 +24,33 @@ AskFlash Modular implements a **microservices architecture** using containerized
 
 ## 📦 Container Breakdown
 
+### Frontend Service
+
+#### `frontend.container` (Port 3000)
+**Purpose**: Modern React-based user interface
+
+**Responsibilities**:
+- Single-page React application with Flash branding
+- Real-time streaming chat interface with "thinking steps"
+- Dark/light theme support and responsive design
+- Company/General mode switching
+- WebSocket connections for real-time updates
+- Local storage for user preferences
+
+**Technology Stack**:
+- React 18 with modern hooks
+- CSS custom properties for theming
+- Fetch API with ReadableStream for streaming
+- Markdown rendering with syntax highlighting
+- TypeScript for type safety
+
+**Legacy Features Preserved**:
+- 🐄 Flash branding with #7ed321 green theme
+- Claude-style thinking indicators during AI reasoning
+- Dual mode support (Company/General)
+- Persistent conversation history
+- Source citations and confidence indicators
+
 ### Core Services
 
 #### `conversation.container` (Port 8001)
@@ -130,8 +157,8 @@ AskFlash Modular implements a **microservices architecture** using containerized
 ### Synchronous Communication (HTTP)
 
 ```
-Frontend/Client
-    ↓
+Frontend (3000) 
+    ↓ 
 Gateway Container (8000)
     ↓
 ┌─────────────────────────────────────┐
@@ -139,6 +166,20 @@ Gateway Container (8000)
 │       ↓                    ↓         │
 │  Embedding (8002) ←→ Local-LLM (8006) │
 └─────────────────────────────────────┘
+```
+
+### Frontend-Backend Communication
+
+```
+React Frontend (3000)
+    ↓ (HTTP + WebSocket)
+Gateway (8000)
+    ↓
+Conversation Service (8001) ← Real-time chat
+    ↓
+AI Orchestrator (8003) ← AI processing
+    ↓
+Embedding Service (8002) ← Document search
 ```
 
 ### Asynchronous Communication (Redis Events)

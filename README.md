@@ -10,6 +10,7 @@ AskFlash Modular uses a **single shared PostgreSQL database** with logical table
 
 | Container | Purpose | Port | DB Tables Owned |
 |-----------|---------|------|-----------------|
+| `frontend.container` | React UI & user interface | 3000 | _(stateless)_ |
 | `conversation.container` | Chat sessions & messaging | 8001 | `conversation_histories`, `frequent_queries` |
 | `embedding.container` | Vector generation & search | 8002 | `wikis`, `wiki_page_indexes` |
 | `ai-orchestrator.container` | AI routing & orchestration | 8003 | `rulesets`, `integrations` |

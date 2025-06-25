@@ -51,12 +51,31 @@ services:
     depends_on:
       - postgres
 
+  # Frontend Service
+  frontend:
+    build:
+      context: ./containers/frontend.container
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_WS_URL=ws://localhost:8000/ws
+      - REACT_APP_BRAND_NAME=Flash AI Assistant
+      - REACT_APP_BRAND_COLOR=#7ed321
+      - REACT_APP_BRAND_EMOJI=🐄
+      - REACT_APP_ENABLE_STREAMING=true
+      - REACT_APP_ENABLE_THINKING_STEPS=true
+      - REACT_APP_ENABLE_DARK_MODE=true
+    depends_on:
+      - gateway
+    restart: unless-stopped
+
   # Core Application Services
   conversation:
     build:
       context: ./containers/conversation.container
     ports:
-      - "8001:8000"
+      - "8001:8001"
     environment:
       - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
       - REDIS_URL=redis://redis:6379
@@ -73,7 +92,7 @@ services:
     build:
       context: ./containers/embedding.container
     ports:
-      - "8002:8000"
+      - "8002:8002"
     environment:
       - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
       - REDIS_URL=redis://redis:6379
@@ -92,7 +111,7 @@ services:
     build:
       context: ./containers/ai-orchestrator.container
     ports:
-      - "8003:8000"
+      - "8003:8003"
     environment:
       - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
       - REDIS_URL=redis://redis:6379
@@ -109,13 +128,19 @@ services:
     build:
       context: ./containers/project-manager.container
     ports:
-      - "8004:8000"
+      - "8004:8004"
     environment:
-      - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/askflashdb
       - REDIS_URL=redis://redis:6379
-      - JIRA_URL=${JIRA_URL}
-      - JIRA_TOKEN=${JIRA_TOKEN}
-      - TEAMS_WEBHOOK_URL=${TEAMS_WEBHOOK_URL}
+      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8003
+      - EMBEDDING_SERVICE_URL=http://embedding:8002
+      - CONVERSATION_SERVICE_URL=http://conversation:8001
+      # Teams integration (uncomment and configure when needed)
+      # - TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/your-webhook-url
+      # JIRA integration (uncomment and configure when needed)
+      # - JIRA_URL=https://your-domain.atlassian.net
+      # - JIRA_TOKEN=your-jira-api-token
+      # - JIRA_USERNAME=your-email@domain.com
     depends_on:
       postgres:
         condition: service_healthy
@@ -187,9 +212,9 @@ services:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379
-      - CONVERSATION_SERVICE_URL=http://conversation:8000
-      - EMBEDDING_SERVICE_URL=http://embedding:8000
-      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8000
+      - CONVERSATION_SERVICE_URL=http://conversation:8001
+      - EMBEDDING_SERVICE_URL=http://embedding:8002
+      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8003
       - PROJECT_MANAGER_URL=http://project-manager:8000
       - ADAPTIVE_ENGINE_URL=http://adaptive-engine:8000
       - ANALYTICS_URL=http://analytics:8000
@@ -197,9 +222,6 @@ services:
       - conversation
       - embedding
       - ai-orchestrator
-      - project-manager
-      - adaptive-engine
-      - analytics
       - redis
     restart: unless-stopped
 
