@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 SERVICE_URLS = {
     "conversation": os.getenv("CONVERSATION_SERVICE_URL", "http://conversation:8001"),
     "embedding": os.getenv("EMBEDDING_SERVICE_URL", "http://embedding:8002"),
-    "ai-orchestrator": os.getenv("AI_ORCHESTRATOR_SERVICE_URL", "http://ai-orchestrator:8003"),
+    "mcp": os.getenv("MCP_SERVICE_URL", "http://mcp:8003"),
     "project-manager": os.getenv("PROJECT_MANAGER_SERVICE_URL", "http://project-manager:8004"),
-    "adaptive-engine": os.getenv("ADAPTIVE_ENGINE_SERVICE_URL", "http://adaptive-engine:8005"),
+    "adaptive-engine": os.getenv("ADAPTIVE_ENGINE_SERVICE_URL", "http://adaptive-engine:8015"),
     "local-llm": os.getenv("LOCAL_LLM_SERVICE_URL", "http://local-llm:8006"),
     "analytics": os.getenv("ANALYTICS_SERVICE_URL", "http://analytics:8007"),
 }
@@ -81,39 +81,49 @@ async def root() -> Dict[str, Any]:
 
 @app.get("/health")
 async def health_check() -> Dict[str, Any]:
-    """Comprehensive health check for gateway and all services"""
-    health_status = {
-        "gateway": "healthy",
-        "timestamp": str(__import__('datetime').datetime.now()),
-        "services": {}
-    }
-    
-    async with httpx.AsyncClient() as client:
-        for service_name, service_url in SERVICE_URLS.items():
-            try:
-                response = await client.get(f"{service_url}/health", timeout=3.0)
-                health_status["services"][service_name] = {
-                    "status": "healthy" if response.status_code == 200 else "unhealthy",
-                    "url": service_url,
-                    "response_time": response.elapsed.total_seconds()
+    """Comprehensive health check routed through MCP"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Get comprehensive system status from MCP
+            mcp_url = SERVICE_URLS.get("mcp", "http://mcp:8003")
+            response = await client.get(f"{mcp_url}/api/v1/system/status")
+            
+            if response.status_code == 200:
+                mcp_status = response.json()
+                
+                # Format for gateway response
+                health_status = {
+                    "gateway": "healthy",
+                    "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+                    "architecture": "microservices_mcp",
+                    "mcp_health": mcp_status.get("overall_health", "unknown"),
+                    "system_summary": mcp_status.get("health_summary", {}),
+                    "active_tasks": mcp_status.get("active_tasks", 0),
+                    "agents": mcp_status.get("agents", {}),
+                    "infrastructure": mcp_status.get("infrastructure", {}),
+                    "overall": mcp_status.get("overall_health", "unknown")
                 }
-            except Exception as e:
-                health_status["services"][service_name] = {
-                    "status": "unavailable",
-                    "url": service_url,
-                    "error": str(e)
+                
+                return health_status
+            else:
+                # MCP is down, provide basic gateway status
+                return {
+                    "gateway": "healthy",
+                    "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+                    "mcp_health": "unavailable",
+                    "overall": "degraded",
+                    "error": f"MCP health check failed: {response.status_code}"
                 }
-    
-    # Overall health based on critical services
-    critical_services = ["conversation", "ai-orchestrator", "embedding"]
-    critical_healthy = all(
-        health_status["services"].get(svc, {}).get("status") == "healthy" 
-        for svc in critical_services
-    )
-    
-    health_status["overall"] = "healthy" if critical_healthy else "degraded"
-    
-    return health_status
+                
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return {
+            "gateway": "healthy",
+            "timestamp": __import__('datetime').datetime.utcnow().isoformat(),
+            "mcp_health": "unavailable", 
+            "overall": "degraded",
+            "error": f"Cannot reach MCP: {str(e)}"
+        }
 
 @app.get("/services")
 async def service_discovery() -> Dict[str, Any]:

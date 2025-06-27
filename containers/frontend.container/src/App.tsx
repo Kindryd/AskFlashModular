@@ -19,8 +19,10 @@ interface Source {
   content_preview?: string;
 }
 
-interface ThinkingStep {
-  message: string;
+interface ReActStep {
+  step: 'thought' | 'action' | 'observation' | 'final_answer' | 'error';
+  content: string;
+  agent: string;
   timestamp: string;
 }
 
@@ -38,9 +40,9 @@ const App: React.FC = () => {
   const [query, setQuery] = useState<string>('');
   const [conversationId, setConversationId] = useState<string>('');
 
-  // Streaming State
+  // ReAct Streaming State
   const [isThinking, setIsThinking] = useState<boolean>(false);
-  const [thinkingSteps, setThinkingSteps] = useState<ThinkingStep[]>([]);
+  const [reactSteps, setReactSteps] = useState<ReActStep[]>([]);
 
   // Environment variable handling
   const getApiUrl = (): string => {
@@ -95,7 +97,7 @@ const App: React.FC = () => {
         const newConv = await response.json();
         setConversationId(newConv.conversation_id);
         setMessages([]);
-        setThinkingSteps([]);
+        setReactSteps([]);
       }
     } catch (error) {
       console.error('Failed to create conversation:', error);
@@ -116,7 +118,7 @@ const App: React.FC = () => {
     setQuery('');
     setLoading(true);
     setIsThinking(true);
-    setThinkingSteps([]);
+    setReactSteps([]);
     setError('');
 
     try {
@@ -168,10 +170,12 @@ const App: React.FC = () => {
             
             const data = JSON.parse(jsonStr);
             
-            if (data.type === 'thinking') {
-              setThinkingSteps((prev: ThinkingStep[]) => [...prev, {
-                message: data.content,
-                timestamp: new Date().toISOString()
+            if (data.type === 'react') {
+              setReactSteps((prev: ReActStep[]) => [...prev, {
+                step: data.step || 'thought',
+                content: data.content || '',
+                agent: data.agent || 'Flash AI',
+                timestamp: data.timestamp || new Date().toISOString()
               }]);
             } else if (data.type === 'content') {
               // Final response received
@@ -325,16 +329,28 @@ const App: React.FC = () => {
           ))}
 
           {isThinking && (
-            <div className="thinking-indicator">
-              <div className="thinking-header">
-                <span className="thinking-icon">🧠</span>
-                <span>Flash AI is thinking...</span>
+            <div className="react-indicator">
+              <div className="react-header">
+                <span className="react-icon">🧠</span>
+                <span>Flash AI is reasoning...</span>
               </div>
-              <div className="thinking-steps">
-                {thinkingSteps.map((step, index) => (
-                  <div key={index} className="thinking-step">
-                    <span className="step-icon">•</span>
-                    <span className="step-message">{step.message}</span>
+              <div className="react-steps">
+                {reactSteps.map((step, index) => (
+                  <div key={index} className={`react-step react-step-${step.step}`}>
+                    <span className="step-icon">
+                      {step.step === 'thought' && '💭'}
+                      {step.step === 'action' && '⚡'}
+                      {step.step === 'observation' && '👁️'}
+                      {step.step === 'final_answer' && '✅'}
+                      {step.step === 'error' && '❌'}
+                    </span>
+                    <div className="step-content">
+                      <div className="step-header">
+                        <span className="step-type">{step.step.toUpperCase()}</span>
+                        <span className="step-agent">{step.agent}</span>
+                      </div>
+                      <div className="step-message">{step.content}</div>
+                    </div>
                   </div>
                 ))}
               </div>

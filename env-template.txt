@@ -4,6 +4,10 @@
 # AI Services
 OPENAI_API_KEY=your_openai_api_key_here
 
+# Message Broker (RabbitMQ)
+RABBITMQ_USER=askflash
+RABBITMQ_PASS=askflash123
+
 # External Integrations
 JIRA_URL=https://your-company.atlassian.net
 JIRA_TOKEN=your_jira_api_token

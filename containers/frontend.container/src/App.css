@@ -317,14 +317,14 @@ body {
   text-align: right;
 }
 
-/* Thinking Indicator */
-.thinking-indicator {
+/* ReAct Reasoning Indicator */
+.react-indicator {
   max-width: 85%;
   margin-bottom: 1rem;
   animation: slide-in 0.3s ease-out;
 }
 
-.thinking-header {
+.react-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -336,7 +336,7 @@ body {
   font-weight: 500;
 }
 
-.thinking-icon {
+.react-icon {
   animation: thinking-pulse 1.5s ease-in-out infinite;
 }
 
@@ -345,24 +345,95 @@ body {
   50% { opacity: 1; transform: scale(1.1); }
 }
 
-.thinking-steps {
+.react-steps {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0 0 1rem 1rem;
-  padding: 0.5rem 1rem;
-  max-height: 200px;
+  padding: 0.5rem;
+  max-height: 400px;
   overflow-y: auto;
 }
 
-.thinking-step {
+.react-step {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  margin: 0.25rem 0;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
-  color: var(--text-secondary);
   animation: step-appear 0.3s ease-out;
+  transition: all 0.2s ease;
+}
+
+.react-step:hover {
+  background: rgba(126, 211, 33, 0.05);
+}
+
+/* Step type specific styling */
+.react-step-thought {
+  background: rgba(148, 163, 184, 0.1);
+  border-left: 3px solid #94a3b8;
+}
+
+.react-step-action {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+.react-step-observation {
+  background: rgba(34, 197, 94, 0.1);
+  border-left: 3px solid #22c55e;
+}
+
+.react-step-final_answer {
+  background: rgba(126, 211, 33, 0.1);
+  border-left: 3px solid var(--flash-accent);
+  font-weight: 500;
+}
+
+.react-step-error {
+  background: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid #ef4444;
+}
+
+.step-icon {
+  font-size: 1.2rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.step-type {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--flash-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.step-agent {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.step-message {
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 @keyframes step-appear {

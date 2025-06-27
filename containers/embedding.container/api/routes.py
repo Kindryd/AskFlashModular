@@ -22,31 +22,104 @@ async def semantic_search(
     max_results: int = Body(10, embed=True),
     min_confidence: float = Body(0.7, embed=True),
     source_types: Optional[List[str]] = Body(None, embed=True),
+    context_optimization: Optional[Dict[str, Any]] = Body(None, embed=True),
+    user_persona: Optional[Dict[str, Any]] = Body(None, embed=True),
+    adaptive_recommendations: Optional[Dict[str, Any]] = Body(None, embed=True),
     db: AsyncSession = Depends(get_db)
 ):
-    """Perform semantic search across indexed documents"""
-    global enhanced_search
+    """Enhanced semantic search with adaptive context optimization"""
+    global enhanced_search, vector_manager
     try:
-        # Initialize enhanced search service if needed
+        logger.info(f"🔍 Search request: '{query[:50]}{'...' if len(query) > 50 else ''}'")
+        
+        optimized_max_results = max_results
+        optimized_confidence = min_confidence
+        query_expansion_enabled = True
+        
+        if adaptive_recommendations and adaptive_recommendations.get("confidence", 0) > 0.5:
+            logger.info(f"🧠 Applying adaptive optimization: confidence {adaptive_recommendations.get('confidence', 0):.2f}")
+            
+            context_opts = context_optimization or adaptive_recommendations.get("context_optimization", {})
+            
+            relevance_score = context_opts.get("context_relevance_score", 0.5)
+            needs_more_context = context_opts.get("needs_more_context", False)
+            optimization_level = context_opts.get("context_optimization", "medium")
+            
+            if needs_more_context or relevance_score < 0.6:
+                optimized_max_results = min(max_results * 2, 20)
+                optimized_confidence = max(min_confidence - 0.1, 0.5)
+                query_expansion_enabled = True
+                logger.info(f"🔍 Low relevance context detected - expanding search: results={optimized_max_results}, confidence={optimized_confidence}")
+            
+            elif relevance_score > 0.8:
+                optimized_confidence = min(min_confidence + 0.1, 0.9)
+                logger.info(f"🎯 High relevance context detected - precision search: confidence={optimized_confidence}")
+            
+            if user_persona and user_persona.get("personalization_level") == "high":
+                expertise_areas = user_persona.get("user_expertise_areas", [])
+                if expertise_areas:
+                    optimized_confidence = min(optimized_confidence + 0.05, 0.95)
+                    logger.info(f"👨‍💻 Expert user detected in {len(expertise_areas)} areas - increasing precision")
+        
         if not enhanced_search:
             enhanced_search = EnhancedDocumentationService(db=db)
         
-        # Perform enhanced search with alias discovery
-        results = await enhanced_search.search_with_aliases(
-            query=query,
-            max_results=max_results,
-            min_confidence=min_confidence,
-            source_types=source_types
-        )
+        if not vector_manager:
+            vector_manager = VectorStoreManager()
+        
+        if query_expansion_enabled and hasattr(enhanced_search, 'search_with_aliases'):
+            results = await enhanced_search.search_with_aliases(
+                query=query,
+                max_results=optimized_max_results,
+                min_confidence=optimized_confidence,
+                source_types=source_types
+            )
+        else:
+            results = await vector_manager.semantic_search(
+                query=query,
+                limit=optimized_max_results,
+                score_threshold=optimized_confidence,
+                filters={"source_type": source_types[0]} if source_types else None
+            )
+        
+        optimization_metadata = {}
+        if adaptive_recommendations and adaptive_recommendations.get("confidence", 0) > 0.5:
+            optimization_metadata = {
+                "adaptive_optimization_applied": True,
+                "optimization_confidence": adaptive_recommendations.get("confidence", 0),
+                "context_relevance_score": context_optimization.get("context_relevance_score", 0.5) if context_optimization else 0.5,
+                "search_expansion": optimized_max_results > max_results,
+                "confidence_adjustment": optimized_confidence != min_confidence,
+                "suggested_context_types": context_optimization.get("suggested_context_types", []) if context_optimization else []
+            }
+        
+        formatted_results = []
+        for result in results:
+            formatted_result = {
+                "id": result.get("id", ""),
+                "title": result.get("title", result.get("metadata", {}).get("title", "Untitled")),
+                "content": result.get("text", result.get("content", "")),
+                "score": result.get("score", 0.0),
+                "source_type": result.get("source_type", result.get("metadata", {}).get("source_type", "unknown")),
+                "url": result.get("url", result.get("metadata", {}).get("url", "")),
+                "matched_query": result.get("matched_query", query),
+                "alias_expanded": result.get("alias_expanded", False)
+            }
+            formatted_results.append(formatted_result)
+        
+        logger.info(f"✅ Found {len(formatted_results)} results with adaptive optimization")
         
         return {
+            "results": formatted_results,
             "query": query,
-            "results_count": len(results),
-            "results": results,
+            "total_results": len(formatted_results),
             "search_metadata": {
-                "enhanced_search": True,
-                "alias_expansion": True,
-                "confidence_threshold": min_confidence
+                "max_results_requested": max_results,
+                "min_confidence_requested": min_confidence,
+                "source_types": source_types,
+                "actual_results_limit": optimized_max_results,
+                "actual_confidence_threshold": optimized_confidence,
+                "optimization_metadata": optimization_metadata
             }
         }
     except Exception as e:

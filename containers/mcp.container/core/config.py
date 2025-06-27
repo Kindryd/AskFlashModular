@@ -2,12 +2,12 @@ from typing import List, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 
-class AIOrchestratorSettings(BaseSettings):
-    """AI Orchestrator specific configuration settings"""
+class MCPSettings(BaseSettings):
+    """Master Control Program (MCP) configuration settings"""
     
     # Service Info
-    SERVICE_NAME: str = "Flash AI Orchestrator"
-    SERVICE_VERSION: str = "2.0.0"
+    SERVICE_NAME: str = "Flash AI MCP"
+    SERVICE_VERSION: str = "3.0.0"
     SERVICE_PORT: int = 8003
     
     # Database Settings
@@ -81,19 +81,48 @@ class AIOrchestratorSettings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
+    # MCP Specific Settings
+    RABBITMQ_HOST: str = "rabbitmq"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "askflash"
+    RABBITMQ_PASS: str = "askflash123"
+    RABBITMQ_URL: Union[str, None] = None
+    
+    @field_validator("RABBITMQ_URL", mode="after")
+    @classmethod
+    def assemble_rabbitmq_url(cls, v, values):
+        if not v:
+            return f"amqp://{values.data.get('RABBITMQ_USER')}:{values.data.get('RABBITMQ_PASS')}@{values.data.get('RABBITMQ_HOST')}:{values.data.get('RABBITMQ_PORT')}/"
+        return v
+    
+    # Task Management Settings
+    TASK_DEFAULT_TIMEOUT: int = 300  # 5 minutes
+    TASK_MAX_RETRIES: int = 3
+    TASK_CLEANUP_INTERVAL: int = 3600  # 1 hour
+    DAG_EXECUTION_TIMEOUT: int = 600  # 10 minutes
+    
+    # Agent Health Monitoring
+    AGENT_HEARTBEAT_INTERVAL: int = 30  # seconds
+    AGENT_HEALTH_TIMEOUT: int = 300  # 5 minutes
+    AGENT_PERFORMANCE_TRACKING: bool = True
+    
+    # State Management
+    STATE_SYNC_INTERVAL: int = 30  # seconds
+    STATE_PERSISTENCE_ENABLED: bool = True
+    
     # Flash AI Branding
-    FLASH_EMOJI: str = "🧠"
+    FLASH_EMOJI: str = "🐄"
     FLASH_PRIMARY_COLOR: str = "#7ed321"
     
     model_config = SettingsConfigDict(
         case_sensitive=True,
-        env_prefix="AI_ORCHESTRATOR_",
+        env_prefix="MCP_",
         env_file=".env"
     )
 
 # Global settings instance
-settings = AIOrchestratorSettings()
+settings = MCPSettings()
 
-def get_settings() -> AIOrchestratorSettings:
-    """Get the global AI orchestrator settings instance"""
+def get_settings() -> MCPSettings:
+    """Get the global MCP settings instance"""
     return settings 

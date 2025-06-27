@@ -42,9 +42,10 @@ class GatewaySettings(BaseSettings):
     # Service URLs (can be overridden by environment variables)
     CONVERSATION_SERVICE_URL: str = "http://conversation:8001"
     EMBEDDING_SERVICE_URL: str = "http://embedding:8002"
-    AI_ORCHESTRATOR_SERVICE_URL: str = "http://ai-orchestrator:8003"
+    MCP_SERVICE_URL: str = "http://mcp:8003"
     PROJECT_MANAGER_SERVICE_URL: str = "http://project-manager:8004"
-    ADAPTIVE_ENGINE_SERVICE_URL: str = "http://adaptive-engine:8005"
+    AUTHENTICATION_SERVICE_URL: str = "http://authentication:8014"
+    ADAPTIVE_ENGINE_SERVICE_URL: str = "http://adaptive-engine:8015"
     LOCAL_LLM_SERVICE_URL: str = "http://local-llm:8006"
     ANALYTICS_SERVICE_URL: str = "http://analytics:8007"
     

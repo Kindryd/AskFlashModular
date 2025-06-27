@@ -25,8 +25,10 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+      - ./infrastructure/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "askflash123", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -40,6 +42,25 @@ services:
       - qdrant_data:/qdrant/storage
     environment:
       - QDRANT_ENABLE_WEB_UI=true
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: askflash_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-askflash}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-askflash123}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./infrastructure/rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: unless-stopped
 
   adminer:
     image: adminer
@@ -107,20 +128,98 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  ai-orchestrator:
+  mcp:
     build:
-      context: ./containers/ai-orchestrator.container
+      context: ./containers/mcp.container
     ports:
       - "8003:8003"
     environment:
       - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
       - REDIS_URL=redis://redis:6379
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-askflash}
+      - RABBITMQ_PASS=${RABBITMQ_PASS:-askflash123}
       - LOCAL_LLM_URL=http://local-llm:8000
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ========================================
+  # MCP AGENT CONTAINERS
+  # ========================================
+  
+  intent-agent:
+    build:
+      context: ./containers/intent-agent.container
+    ports:
+      - "8010:8010"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=askflash123
+      - RABBITMQ_URL=amqp://askflash:askflash123@rabbitmq:5672/
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  executor-agent:
+    build:
+      context: ./containers/executor-agent.container
+    ports:
+      - "8011:8011"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=askflash123
+      - RABBITMQ_URL=amqp://askflash:askflash123@rabbitmq:5672/
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  websearch-agent:
+    build:
+      context: ./containers/websearch-agent.container
+    ports:
+      - "8012:8012"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=askflash123
+      - RABBITMQ_URL=amqp://askflash:askflash123@rabbitmq:5672/
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  moderator-agent:
+    build:
+      context: ./containers/moderator-agent.container
+    ports:
+      - "8013:8013"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=askflash123
+      - RABBITMQ_URL=amqp://askflash:askflash123@rabbitmq:5672/
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
 
@@ -153,62 +252,41 @@ services:
   #       condition: service_healthy
   #   restart: unless-stopped
 
-  # adaptive-engine:
-  #   build:
-  #     context: ./containers/adaptive-engine.container
-  #   ports:
-  #     - "8005:8000"
-  #   environment:
-  #     - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
-  #     - REDIS_URL=redis://redis:6379
-  #     - QDRANT_URL=http://qdrant:6333
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #     qdrant:
-  #       condition: service_started
-  #   restart: unless-stopped
-
-  # local-llm:
-  #   build:
-  #     context: ./containers/local-llm.container
-  #   ports:
-  #     - "8006:8000"
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379
-  #     - MODEL_NAME=mistral-7b-instruct
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #   restart: unless-stopped
-  #   # Uncomment if you have GPU support
-  #   # deploy:
-  #   #   resources:
-  #   #     reservations:
-  #   #       devices:
-  #   #         - driver: nvidia
-  #   #           count: 1
-  #   #           capabilities: [gpu]
-
-     # analytics:
-   #   build:
-   #     context: ./containers/analytics.container
-   #   ports:
-   #     - "8007:8000"
-   #   environment:
-   #     - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
-   #     - REDIS_URL=redis://redis:6379
-   #     - S3_BUCKET=${ANALYTICS_S3_BUCKET}
-   #     - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-   #     - S3_SECRET_KEY=${S3_SECRET_KEY}
-   #   depends_on:
-   #     postgres:
-   #       condition: service_healthy
-   #     redis:
-   #       condition: service_healthy
-   #   restart: unless-stopped
+  # Adaptive Learning Engine Container
+  adaptive-engine:
+    build: ./containers/adaptive-engine.container
+    container_name: askflash-adaptive-engine
+    ports:
+      - "8015:8015"
+    environment:
+      - POSTGRES_URL=postgresql://askflash:askflash123@postgres:5432/askflashdb
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=askflash123
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - ANALYSIS_BATCH_SIZE=100
+      - LEARNING_THRESHOLD=0.8
+      - PATTERN_DETECTION_WINDOW_DAYS=7
+      - MIN_INTERACTIONS_FOR_PERSONA=5
+      - PERSONA_CONFIDENCE_THRESHOLD=0.7
+      - ENABLE_PERSONA_BUILDING=true
+      - ENABLE_KNOWLEDGE_EVOLUTION=true
+      - ENABLE_PATTERN_ANALYSIS=true
+      - ENABLE_CROSS_USER_LEARNING=true
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+    networks:
+      - askflash-network
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8015/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   gateway:
     build:
@@ -219,18 +297,20 @@ services:
       - REDIS_URL=redis://redis:6379
       - CONVERSATION_SERVICE_URL=http://conversation:8001
       - EMBEDDING_SERVICE_URL=http://embedding:8002
-      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8003
+      - AI_ORCHESTRATOR_URL=http://mcp:8003
+      - MCP_URL=http://mcp:8003
       - PROJECT_MANAGER_URL=http://project-manager:8000
-      - ADAPTIVE_ENGINE_URL=http://adaptive-engine:8000
+      - ADAPTIVE_ENGINE_URL=http://adaptive-engine:8015
       - ANALYTICS_URL=http://analytics:8000
     depends_on:
       - conversation
       - embedding
-      - ai-orchestrator
+      - mcp
       - redis
     restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
-  qdrant_data: 
+  qdrant_data:
+  rabbitmq_data: 

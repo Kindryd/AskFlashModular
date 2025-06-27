@@ -17,8 +17,12 @@ SERVICE_ROUTES = {
     "/chat": "conversation",
     "/conversations": "conversation",
     
-    # AI Orchestrator Container routes  
-    "/semantic": "ai-orchestrator",  # Quality enhancement endpoints
+    # MCP Container routes  
+    "/semantic": "mcp",  # Quality enhancement endpoints
+    "/tasks": "mcp",     # Task management endpoints
+    "/analytics": "mcp", # Analytics endpoints  
+    "/system": "mcp",    # System status endpoints
+    "/queues": "mcp",    # Queue status endpoints
     
     # Embedding Container routes
     "/docs": "embedding",  # Documentation search
@@ -29,15 +33,18 @@ SERVICE_ROUTES = {
     "/teams": "project-manager",  # Teams bot
     "/integrations": "project-manager",  # Integration management
     
+    # Authentication Container routes
+    "/auth": "authentication",  # Authentication endpoints
+    "/users": "authentication",  # User management endpoints  
+    "/sessions": "authentication",  # Session management
+    
     # Gateway-handled routes (no proxying)
-    "/auth": "gateway",  # Authentication (gateway handles)
-    "/users": "gateway",  # User management (gateway handles)  
     "/rulesets": "gateway",  # Ruleset management (gateway handles)
     "/monitoring": "gateway",  # Monitoring (gateway aggregates)
     "/search": "gateway",  # Search coordination (gateway coordinates)
     
-    # Analytics Container routes
-    "/analytics": "analytics",  # Analytics endpoints
+    # Analytics Container routes (legacy, now handled by MCP)
+    "/legacy-analytics": "analytics",  # Legacy analytics endpoints
     
     # Adaptive Engine Container routes  
     "/adaptive": "adaptive-engine",  # Learning endpoints
@@ -49,8 +56,9 @@ SERVICE_ROUTES = {
 # Service URL mapping
 SERVICE_URLS = {
     "conversation": settings.CONVERSATION_SERVICE_URL,
-    "ai-orchestrator": settings.AI_ORCHESTRATOR_SERVICE_URL,
+    "mcp": settings.MCP_SERVICE_URL,
     "embedding": settings.EMBEDDING_SERVICE_URL,
+    "authentication": settings.AUTHENTICATION_SERVICE_URL,
     "project-manager": settings.PROJECT_MANAGER_SERVICE_URL,
     "analytics": settings.ANALYTICS_SERVICE_URL,
     "adaptive-engine": settings.ADAPTIVE_ENGINE_SERVICE_URL,
@@ -203,8 +211,40 @@ async def proxy_integrations(request: Request, path: str):
     methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
 )
 async def proxy_semantic(request: Request, path: str):
-    """Proxy semantic enhancement requests to AI orchestrator container"""
-    return await proxy_request(request, "ai-orchestrator", f"/api/v1/semantic/{path}")
+    """Proxy semantic requests to MCP container"""
+    return await proxy_request(request, "mcp", f"/api/v1/semantic/{path}")
+
+@router.api_route(
+    "/tasks/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_tasks(request: Request, path: str):
+    """Proxy task requests to MCP container"""
+    return await proxy_request(request, "mcp", f"/api/v1/tasks/{path}")
+
+@router.api_route(
+    "/analytics/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_analytics(request: Request, path: str):
+    """Proxy analytics requests to MCP container"""
+    return await proxy_request(request, "mcp", f"/api/v1/analytics/{path}")
+
+@router.api_route(
+    "/system/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_system(request: Request, path: str):
+    """Proxy system requests to MCP container"""
+    return await proxy_request(request, "mcp", f"/api/v1/system/{path}")
+
+@router.api_route(
+    "/queues/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_queues(request: Request, path: str):
+    """Proxy queue requests to MCP container"""
+    return await proxy_request(request, "mcp", f"/api/v1/queues/{path}")
 
 # Gateway-handled endpoints (implemented directly in gateway)
 
@@ -215,7 +255,7 @@ async def search_status():
         "status": "operational",
         "services": {
             "embedding": "vector search",
-            "ai-orchestrator": "quality enhancement",
+            "mcp": "task coordination and AI processing",
             "conversation": "search integration"
         },
         "description": "🔍 Flash AI Search - Coordinated across microservices"
@@ -232,23 +272,29 @@ async def gateway_monitoring():
         "services_available": len(SERVICE_URLS)
     }
 
-@router.get("/auth/status")
-async def auth_status():
-    """Authentication status - placeholder for gateway auth"""
-    return {
-        "status": "operational",
-        "description": "Authentication handled by gateway",
-        "note": "Implement JWT/OAuth here for production"
-    }
+@router.api_route(
+    "/auth/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_auth(request: Request, path: str):
+    """Proxy authentication requests to authentication container"""
+    return await proxy_request(request, "authentication", f"/api/v1/{path}")
 
-@router.get("/users/status") 
-async def users_status():
-    """User management status - placeholder for gateway user management"""
-    return {
-        "status": "operational",
-        "description": "User management handled by gateway",
-        "note": "Implement user CRUD operations here"
-    }
+@router.api_route(
+    "/users/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_users(request: Request, path: str):
+    """Proxy user management requests to authentication container"""
+    return await proxy_request(request, "authentication", f"/api/v1/{path}")
+
+@router.api_route(
+    "/sessions/{path:path}",
+    methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
+)
+async def proxy_sessions(request: Request, path: str):
+    """Proxy session management requests to authentication container"""
+    return await proxy_request(request, "authentication", f"/api/v1/{path}")
 
 @router.get("/rulesets/status")
 async def rulesets_status():
