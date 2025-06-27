@@ -65,7 +65,7 @@ app.add_middleware(
 )
 
 # Include API router
-app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router)
 
 @app.get("/")
 async def root() -> Dict[str, Any]:

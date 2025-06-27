@@ -29,7 +29,7 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState<boolean>(() => 
     localStorage.getItem('flash-theme') === 'dark'
   );
-  const [mode, setMode] = useState<'company' | 'general'>('company');
+  const mode = 'company' as const;
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
@@ -54,7 +54,7 @@ const App: React.FC = () => {
   // Initialize conversation on load
   useEffect(() => {
     loadActiveConversation();
-  }, [mode]);
+  }, []);
 
   // Apply theme
   useEffect(() => {
@@ -65,7 +65,7 @@ const App: React.FC = () => {
   const loadActiveConversation = async (): Promise<void> => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/v1/conversations/active?mode=${mode}`);
+      const response = await fetch(`${apiUrl}/conversations/active?mode=${mode}`);
       
       if (response.ok) {
         const conversation = await response.json();
@@ -83,7 +83,7 @@ const App: React.FC = () => {
   const createNewConversation = async (): Promise<void> => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/v1/conversations/new`, {
+      const response = await fetch(`${apiUrl}/conversations/new`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleStreamedChat = async (userQuery: string, selectedMode: 'company' | 'general'): Promise<void> => {
+  const handleStreamedChat = async (userQuery: string, selectedMode: 'company'): Promise<void> => {
     if (!userQuery.trim()) return;
 
     // Add user message immediately
@@ -121,7 +121,7 @@ const App: React.FC = () => {
 
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/v1/chat/stream`, {
+      const response = await fetch(`${apiUrl}/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,29 +158,39 @@ const App: React.FC = () => {
           if (!line.trim()) continue;
 
           try {
-            const data = JSON.parse(line);
+            // Handle Server-Sent Events format: "data: {json}"
+            let jsonStr = line;
+            if (line.startsWith('data: ')) {
+              jsonStr = line.substring(6); // Remove "data: " prefix
+            }
+            
+            if (!jsonStr.trim()) continue; // Skip empty data lines
+            
+            const data = JSON.parse(jsonStr);
             
             if (data.type === 'thinking') {
               setThinkingSteps((prev: ThinkingStep[]) => [...prev, {
-                message: data.message,
-                timestamp: data.timestamp
+                message: data.content,
+                timestamp: new Date().toISOString()
               }]);
-            } else if (data.type === 'response') {
+            } else if (data.type === 'content') {
               // Final response received
               setIsThinking(false);
               const assistantMessage: Message = {
                 role: 'assistant',
-                content: data.data.response,
-                mode: data.data.mode,
-                sources: data.data.sources,
-                confidence: data.data.confidence,
-                timestamp: data.data.timestamp
+                content: data.content,
+                mode: 'company',
+                sources: data.sources || [],
+                confidence: data.confidence || 0.8,
+                timestamp: new Date().toISOString()
               };
               setMessages((prev: Message[]) => [...prev, assistantMessage]);
-              setConversationId(data.data.conversation_id || conversationId);
+            } else if (data.type === 'done') {
+              // Stream finished
+              setIsThinking(false);
             } else if (data.type === 'error') {
               setIsThinking(false);
-              setError(data.message);
+              setError(data.content || 'An error occurred');
             }
           } catch (parseError) {
             console.warn('Failed to parse streaming data:', line);
@@ -213,10 +223,10 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleMode = (): void => {
-    const newMode = mode === 'company' ? 'general' : 'company';
-    setMode(newMode);
-  };
+  // Mode is fixed to company only
+  // const toggleMode = (): void => {
+  //   setMode('company');
+  // };
 
   const toggleTheme = (): void => {
     setDarkMode(!darkMode);
@@ -231,17 +241,11 @@ const App: React.FC = () => {
             Flash AI Assistant
           </h1>
           <div className="mode-badge" data-mode={mode}>
-            {mode === 'company' ? '🐄 Flash Team' : '🌐 General'}
+            🐄 Flash Team
           </div>
         </div>
         <div className="header-controls">
-          <button 
-            className="control-btn mode-toggle"
-            onClick={toggleMode}
-            title="Toggle Mode"
-          >
-            {mode === 'company' ? '🌐' : '🐄'}
-          </button>
+          {/* Mode is fixed to company only */}
           <button 
             className="control-btn theme-toggle"
             onClick={toggleTheme}

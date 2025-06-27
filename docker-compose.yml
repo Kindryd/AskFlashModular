@@ -124,86 +124,91 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  project-manager:
-    build:
-      context: ./containers/project-manager.container
-    ports:
-      - "8004:8004"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/askflashdb
-      - REDIS_URL=redis://redis:6379
-      - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8003
-      - EMBEDDING_SERVICE_URL=http://embedding:8002
-      - CONVERSATION_SERVICE_URL=http://conversation:8001
-      # Teams integration (uncomment and configure when needed)
-      # - TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/your-webhook-url
-      # JIRA integration (uncomment and configure when needed)
-      # - JIRA_URL=https://your-domain.atlassian.net
-      # - JIRA_TOKEN=your-jira-api-token
-      # - JIRA_USERNAME=your-email@domain.com
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+  # ========================================
+  # INCOMPLETE CONTAINERS - COMMENTED OUT
+  # ========================================
+  # Uncomment these when ready to implement
+  
+  # project-manager:
+  #   build:
+  #     context: ./containers/project-manager.container
+  #   ports:
+  #     - "8004:8004"
+  #   environment:
+  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/askflashdb
+  #     - REDIS_URL=redis://redis:6379
+  #     - AI_ORCHESTRATOR_URL=http://ai-orchestrator:8003
+  #     - EMBEDDING_SERVICE_URL=http://embedding:8002
+  #     - CONVERSATION_SERVICE_URL=http://conversation:8001
+  #     # Teams integration (uncomment and configure when needed)
+  #     # - TEAMS_WEBHOOK_URL=https://outlook.office.com/webhook/your-webhook-url
+  #     # JIRA integration (uncomment and configure when needed)
+  #     # - JIRA_URL=https://your-domain.atlassian.net
+  #     # - JIRA_TOKEN=your-jira-api-token
+  #     # - JIRA_USERNAME=your-email@domain.com
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
 
-  adaptive-engine:
-    build:
-      context: ./containers/adaptive-engine.container
-    ports:
-      - "8005:8000"
-    environment:
-      - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
-      - REDIS_URL=redis://redis:6379
-      - QDRANT_URL=http://qdrant:6333
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      qdrant:
-        condition: service_started
-    restart: unless-stopped
+  # adaptive-engine:
+  #   build:
+  #     context: ./containers/adaptive-engine.container
+  #   ports:
+  #     - "8005:8000"
+  #   environment:
+  #     - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
+  #     - REDIS_URL=redis://redis:6379
+  #     - QDRANT_URL=http://qdrant:6333
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     qdrant:
+  #       condition: service_started
+  #   restart: unless-stopped
 
-  local-llm:
-    build:
-      context: ./containers/local-llm.container
-    ports:
-      - "8006:8000"
-    environment:
-      - REDIS_URL=redis://redis:6379
-      - MODEL_NAME=mistral-7b-instruct
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    # Uncomment if you have GPU support
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+  # local-llm:
+  #   build:
+  #     context: ./containers/local-llm.container
+  #   ports:
+  #     - "8006:8000"
+  #   environment:
+  #     - REDIS_URL=redis://redis:6379
+  #     - MODEL_NAME=mistral-7b-instruct
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #   restart: unless-stopped
+  #   # Uncomment if you have GPU support
+  #   # deploy:
+  #   #   resources:
+  #   #     reservations:
+  #   #       devices:
+  #   #         - driver: nvidia
+  #   #           count: 1
+  #   #           capabilities: [gpu]
 
-  analytics:
-    build:
-      context: ./containers/analytics.container
-    ports:
-      - "8007:8000"
-    environment:
-      - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
-      - REDIS_URL=redis://redis:6379
-      - S3_BUCKET=${ANALYTICS_S3_BUCKET}
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
+     # analytics:
+   #   build:
+   #     context: ./containers/analytics.container
+   #   ports:
+   #     - "8007:8000"
+   #   environment:
+   #     - POSTGRES_URL=postgresql://postgres:postgres@postgres/askflashdb
+   #     - REDIS_URL=redis://redis:6379
+   #     - S3_BUCKET=${ANALYTICS_S3_BUCKET}
+   #     - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+   #     - S3_SECRET_KEY=${S3_SECRET_KEY}
+   #   depends_on:
+   #     postgres:
+   #       condition: service_healthy
+   #     redis:
+   #       condition: service_healthy
+   #   restart: unless-stopped
 
   gateway:
     build:

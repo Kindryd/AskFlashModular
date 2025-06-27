@@ -119,12 +119,36 @@ async def proxy_request(
         raise HTTPException(status_code=500, detail="Internal gateway error")
 
 @router.api_route(
+    "/chat/stream",
+    methods=["POST"]
+)
+async def proxy_chat_stream(request: Request):
+    """Proxy streaming chat requests to conversation container"""
+    return await proxy_request(request, "conversation", "/chat/stream")
+
+@router.api_route(
     "/chat/{path:path}",
     methods=["GET", "POST", "PUT", "DELETE", "PATCH"]
 )
 async def proxy_chat(request: Request, path: str):
     """Proxy chat requests to conversation container"""
-    return await proxy_request(request, "conversation", f"/api/v1/chat/{path}")
+    return await proxy_request(request, "conversation", f"/chat/{path}")
+
+@router.api_route(
+    "/conversations/active",
+    methods=["GET"]
+)
+async def proxy_conversations_active(request: Request):
+    """Proxy active conversation requests to conversation container"""
+    return await proxy_request(request, "conversation", "/conversations/active")
+
+@router.api_route(
+    "/conversations/new",
+    methods=["POST"]
+)
+async def proxy_conversations_new(request: Request):
+    """Proxy new conversation requests to conversation container"""
+    return await proxy_request(request, "conversation", "/conversations/new")
 
 @router.api_route(
     "/conversations/{path:path}",
@@ -132,7 +156,7 @@ async def proxy_chat(request: Request, path: str):
 )
 async def proxy_conversations(request: Request, path: str):
     """Proxy conversation requests to conversation container"""
-    return await proxy_request(request, "conversation", f"/api/v1/conversations/{path}")
+    return await proxy_request(request, "conversation", f"/conversations/{path}")
 
 @router.api_route(
     "/docs/{path:path}",
